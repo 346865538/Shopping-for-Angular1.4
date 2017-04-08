@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Angular</title>
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		
+		<script type="text/javascript" src="bootstrap-3.3.7/js/jquery-3.1.1.min.js"></script>
+		<link rel="stylesheet" type="text/css" href="bootstrap-3.3.7/css/bootstrap.min.css"/>
+		<script type="text/javascript" src="bootstrap-3.3.7/js/bootstrap.min.js"></script>
+		<link rel="stylesheet" type="text/css" href="index.css"/>
+		<script type="text/javascript" src="index.js"></script>
+		<script type="text/javascript" src="bootstrap-3.3.7/js/angular.js"></script>
+		<script type="text/javascript" src="bootstrap-3.3.7/js/angular-cookies.js"></script>
+	</head>
+	<body>
+		<div class="container" ng-app="myapp" ng-controller="mycon">
+			<!--内容区-->
+			<div class="container_box">
+				<div ng-show="page1" class="homepage">
+					1
+				</div>
+				<div ng-show="page2">2</div>
+				<div ng-show="page3">3</div>
+				<div ng-show="page4">4</div>
+				<div class="user" ng-show="page5">
+					<!--未登录时的注册登录界面-->
+					<div class="lr_bigbox" ng-hide="islogin">
+						<div class="login_reg_box">
+							<span class="btn btn-info" ng-click="login()" ng-hide="login_reg_show">登录</span>
+							<span class="btn btn-warning" ng-click="reg()" ng-hide="login_reg_show">注册</span>
+						</div>
+						<div class="login_reg_cont" ng-show="login_reg_show">
+							<div class="hr"></div>
+							<p class="warning">{{login_reg}}</p>
+							<hr />
+							<div class="login_reg_main">
+								<input type="text" placeholder="请输入用户名" ng-model="userName"/>
+								<input type="text" placeholder="请输入密码" ng-model="userPass"/>
+								<input type="text" placeholder="请再次输入密码" ng-hide="login_or_reg" ng-model="userPassAgain"/>
+								<div class="login_reg_main_btnbox">
+									<button class="btn btn-warning" ng-click="submit()">{{login_reg_msg}}</button>
+									<button class="btn btn-default" ng-click="tabpage5()">取消</button>
+								</div>
+								<div class="login_reg_tips">{{login_reg_errmsg}}</div>
+							</div>
+						</div>
+					</div>
+					<!--登录后的个人中心界面-->
+					<div class="lr_bigbox" ng-show="islogin">
+						<div class="hr"></div>
+						<div class="userimg"></div>
+						<p class="username">{{nowUsers.uname}}</p>
+						<hr />
+						<div class="exit" ng-click="exit()">退出</div>
+					</div>
+				</div>
+			</div>
+			<!--底部导航区-->
+			<footer class="footerNav">
+				<div ng-click="tabpage1()"><img src="img/home_off.png"/></div>
+				<div ng-click="tabpage2()"><img src="img/msg_off.png"/></div>
+				<div ng-click="tabpage3()"><img src="img/create.png" class="footerNav_bigimg"/></div>
+				<div ng-click="tabpage4()"><img src="img/search_off.png"/></div>
+				<div ng-click="tabpage5()"><img src="img/user_off.png"/></div>
+			</footer>
+		</div>
+	</body>
+	<script type="text/javascript">
+		var app = angular.module("myapp",["ngCookies"]);
+		app.controller("mycon",function($scope,$timeout,$http,$cookieStore){
+			$scope.userName = "";
+			$scope.userPass = "";
+			$scope.userPassAgain = "";
+			
+			$scope.nowUsers = $cookieStore.get("nowUser");
+			console.log($scope.nowUsers);
+			if($scope.nowUsers == undefined){
+				console.log("未登录");
+				$scope.islogin = false;
+			}else{
+				console.log("已登录.用户："+$scope.nowUsers.uname);
+				$scope.islogin = true;
+			}
+			
+			
+			// 点击登录注册显示相应页面
+			$scope.login = function(){
+				$scope.login_reg = "账号登录";
+				$scope.login_reg_msg = "登录";
+				$scope.login_reg_show = true;
+				$scope.login_or_reg = true;
+			}
+			$scope.reg = function(){
+				$scope.login_reg = "用户注册";
+				$scope.login_reg_msg = "注册";
+				$scope.login_reg_show = true;
+				$scope.login_or_reg = false;
+			}
+			
+			// 提交
+			$scope.submit = function(){
+				if($scope.login_or_reg){
+					// 登录
+					if($scope.userName == "" || $scope.userPass == ""){
+						$scope.login_reg_errmsg = "请输入正确的用户名和密码";
+						$timeout(function(){
+							$scope.login_reg_errmsg = "";
+						},1500)
+					}else{
+						// 前台验证信息合法后发送到后台验证身份
+						$http({method:"get",url:"index.php",params:{
+							type:"login",
+							name:$scope.userName,
+							pass:$scope.userPass
+						}}).success(function(res){
+							if(res == "登录成功"){
+								//登录成功
+								$cookieStore.put("nowUser",{'uname':$scope.userName,'upass':$scope.userPass});
+							    $scope.nowUsers = $cookieStore.get("nowUser");
+							    console.info($scope.nowUsers);
+								if($scope.nowUsers == undefined){
+									console.log("未登录");
+									$scope.islogin = false;
+								}else{
+									console.log("已登录.用户："+$scope.nowUsers.uname);
+									$scope.islogin = true;
+								}
+							}else{
+								$scope.login_reg_errmsg = res;
+								$timeout(function(){
+									$scope.login_reg_errmsg = "";
+								},1500)
+							}
+						})
+					}
+				}else{
+					// 注册
+					if($scope.userName == "" || $scope.userPass == "" || $scope.userPassAgain == "" || $scope.userPass != $scope.userPassAgain){
+						$scope.login_reg_errmsg = "请输入合法的信息";
+						$timeout(function(){
+							$scope.login_reg_errmsg = "";
+						},1500)
+					}else{
+						// 前台验证信息合法后发送到后台添加到数据库
+						$http({method:"get",url:"index.php",params:{
+							type:"reg",
+							name:$scope.userName,
+							pass:$scope.userPass
+						}}).success(function(res){
+							$scope.login_reg_errmsg = res;
+						})
+					}
+				}
+			}
+			
+			// 退出
+			$scope.exit = function(){
+				$cookieStore.remove("nowUser");
+				$scope.nowUsers = $cookieStore.get("nowUser");
+			    console.info($scope.nowUsers);
+				if($scope.nowUsers == undefined){
+					console.log("未登录");
+					$scope.islogin = false;
+				}else{
+					console.log("已登录.用户："+$scope.nowUsers.uname);
+					$scope.islogin = true;
+				}
+			}
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			// 点击底部导航  显示指定板块
+			function closeAllPage(){
+				$scope.userName = "";
+				$scope.userPass = "";
+				$scope.userPassAgain = "";
+				$scope.login_reg_errmsg = "";
+				$scope.page1 = false;
+				$scope.page2 = false;
+				$scope.page3 = false;
+				$scope.page4 = false;
+				$scope.page5 = false;
+				$scope.login_reg_show = false;
+			}
+			closeAllPage();
+			$scope.page1 = true;
+			$scope.tabpage1 = function(){
+				closeAllPage();
+				$scope.page1 = true;
+			}
+			$scope.tabpage2 = function(){
+				closeAllPage();
+				$scope.page2 = true;
+			}
+			$scope.tabpage3 = function(){
+				closeAllPage();
+				$scope.page3 = true;
+			}
+			$scope.tabpage4 = function(){
+				closeAllPage();
+				$scope.page4 = true;
+			}
+			$scope.tabpage5 = function(){
+				closeAllPage();
+				$scope.page5 = true;
+			}
+		});
+	</script>
+</html>
